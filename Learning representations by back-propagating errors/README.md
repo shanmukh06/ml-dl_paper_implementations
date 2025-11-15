@@ -1,32 +1,39 @@
 # Implementation of "Learning representations by back-propagating errors"
 
-This project is a from-scratch implementation of the 1986 back-propagation paper by Rumelhart, Hinton, and Williams, using only NumPy.
+This project is a from-scratch implementation of the 1986 back-propagation paper by Rumelhart, Hinton, and Williams, built using only NumPy.
 
 **Paper:** [Learning representations by back-propagating errors](https://www.nature.com/articles/323533a0) (Nature, 1986). A local copy is included as `paper.pdf`.
 
-## Project Goal
+## Project Status: Complete
 
-The goal is to implement the core mechanics of the back-propagation algorithm as described in the paper, including the forward pass, backward pass (gradient calculation), and weight update rule.
+This implementation successfully trains a neural network to solve the 6-bit symmetry detection task, achieving 100% accuracy on the full 64-case dataset.
 
-## Current Status
+## Project Structure
 
-This is an initial commit with the core propagation functions implemented.
+* **`model.py`**: Contains the core neural network functions, built from scratch:
+    * `initialize_network()`: Sets up weights and biases.
+    * `forward_pass()`: Implements Equations (1) and (2) for prediction.
+    * `backward_pass()`: Implements Equations (4), (5), (6), and (7) for gradient calculation.
+    * `update_weights()`: Implements Equation (9) (gradient descent with momentum).
+    * `sigmoid()` and `sigmoid_derivative()`
+    * `calculate_error()`
 
-### Completed:
+* **`train.py`**: The main executable script that:
+    1.  Generates the 6-bit symmetry dataset.
+    2.  Initializes a `[6, 2, 1]` network.
+    3.  Trains the network for 1,500 epochs using the functions from `model.py`.
+    4.  Tests the trained network and reports the final accuracy.
 
-* **`model.py`** (Functional approach)
-    * `initialize_network()`: Sets up weights and biases with small random values.
-    * `sigmoid()`: Implements Equation (2).
-    * `sigmoid_derivative()`: Efficiently calculates $dy/dx$ using the sigmoid's output.
-    * `forward_pass()`: Implements Equations (1) and (2) to get a network output and a cache of intermediate values.
-    * `backward_pass()`: Implements Equations (4), (5), (6), and (7) to calculate the error gradients for all weights and biases.
+## How to Run
 
-### To-Do:
+1.  Ensure you have NumPy installed:
+    ```bash
+    pip install numpy
+    ```
+2.  Run the `train.py` script:
+    ```bash
+    python train.py
+    ```
 
-* Implement the `update_weights()` function (Equation 9) to apply the calculated gradients with momentum.
-* Create `train.py` to loop over a dataset (e.g., the symmetry problem) and train the network.
-* Create `experiment.ipynb` to run experiments and visualize the results (like the loss curve).
+You will see the training progress as the error decreases every 100 epochs, followed by a final test report.
 
-## Usage
-
-At this stage, the model can be imported in Python to perform a single forward and backward pass, but no training loop exists yet.
