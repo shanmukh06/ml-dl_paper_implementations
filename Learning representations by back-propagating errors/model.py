@@ -42,29 +42,41 @@ def calculate_error(actual_output, desired_output):
     return error
 
 def sigmoid_derivative(sigmoid_output):
+    """Expects the already-calculated sigmoid output, not the raw input."""
     return sigmoid_output*(1-sigmoid_output)
 
-def backward_pass(final_output, desired_output, cache, weights):
-    delta = final_output-desired_output
-    delta = delta*sigmoid_derivative(final_output)
+def backward_pass_dynamic(final_output, desired_output, cache, weights):
+    """
+        Dynamically backpropagates through N layers.
+        cache: tuple of (activations, inputs) from the forward pass.
+    """
+    activations, _ = cache
+    num_layers = len(weights)
 
-    activations, inputs = cache
-    y_i = activations[-2]
-    grad_w_output = np.dot(y_i.T, delta)
+    # Initialize empty lists for dynamic N-layer gradients
+    grad_w = [None] * num_layers
+    grad_b = [None] * num_layers
 
-    grad_b_output = np.sum(delta, axis=0, keepdims=True)
+    # 1. Calculate the delta for the final output layer
+    # Using MSE derivative: (output - target) * sigmoid'(output)
+    delta = (final_output - desired_output) * sigmoid_derivative(final_output)
 
-    new_delta = np.dot(delta, weights[1].T)
-    new_delta = new_delta*sigmoid_derivative(activations[1])
+    # 2. Compute gradients for the output layer (Index -1)
+    grad_w[-1] = np.dot(activations[-2].T, delta)
+    grad_b[-1] = np.sum(delta, axis=0, keepdims=True)
 
-    y_k = activations[0]
+    # 3. Dynamically backpropagate through all hidden layers in reverse
+    for l in range(num_layers - 2, -1, -1):
+        # Propagate the delta backwards using the weights of the *next* layer
+        delta = np.dot(delta, weights[l + 1].T)
+        # Apply derivative of the activation function for the *current* layer
+        delta = delta * sigmoid_derivative(activations[l + 1])
 
-    grad_w_hidden = np.dot(y_k.T, new_delta)
+        # Compute gradients for the current hidden layer
+        grad_w[l] = np.dot(activations[l].T, delta)
+        grad_b[l] = np.sum(delta, axis=0, keepdims=True)
 
-    grad_b_hidden = np.sum(new_delta, axis=0, keepdims=True)
-
-    return (grad_w_hidden, grad_w_output), (grad_b_hidden, grad_b_output)
-
+    return grad_w, grad_b
 def update_weights(weights, biases, weight_gradients, bias_gradients,
                    prev_weight_updates, prev_bias_updates,
                    learning_rate, momentum):
