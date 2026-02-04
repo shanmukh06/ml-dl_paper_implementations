@@ -30,63 +30,60 @@ class LinearLayer:
         delta_out = np.dot(delta_in, self.W.T)
         return delta_out
 
-class Activations:
 
-    @staticmethod
-    def tanh(x):
-        return np.tanh(x)
+class SigmoidActivation:
+    def __init__(self):
+        self.cached_output = None
 
-    @staticmethod
-    def tanh_prime(x):
-        return 1.00 - np.tanh(x)**2
+    def forward(self, x):
+        # Edge Case Fix: Prevent np.exp overflow
+        x_safe = np.clip(x, -500, 500)
+        self.cached_output = 1 / (1 + np.exp(-x_safe))
+        return self.cached_output
 
-    @staticmethod
-    def sigmoid(x):
-        return 1 / ( 1 + np.exp(-x))
+    def backward(self, delta_in):
+        # O(1) derivative using cached state
+        local_gradient = self.cached_output * (1.0 - self.cached_output)
+        return delta_in * local_gradient
 
-    @staticmethod
-    def sigmoid_prime(x):
-        s = 1/(1 + np.exp(-x))
-        return s*(1-s)
 
-    @staticmethod
-    def softsign(x):
-        return x/(1+np.abs(x))
+class TanhActivation:
+    def __init__(self):
+        self.cached_output = None
 
-    @staticmethod
-    def softsign_prime(x):
-        return 1/(1+np.abs(x))**2
+    def forward(self, x):
+        self.cached_output = np.tanh(x)
+        return self.cached_output
+
+    def backward(self, delta_in):
+        local_gradient = 1.0 - (self.cached_output ** 2)
+        return delta_in * local_gradient
 
 class DeepMLP:
     def __init__(self, layer_sizes, activation='tanh', init_type='xavier'):
-        """
-        layer_sizes: list of int eg:[784, 1000, 1000, 1000, 1000, 10]:
-        """
-
         self.layers = []
-        self.activation_type = activation
+        self.activations = [] # New list to hold stateful activation objects
+
+        # Map string to class
+        act_mapping = {
+            'sigmoid': SigmoidActivation,
+            'tanh': TanhActivation
+        }
+        ActClass = act_mapping[activation]
 
         for i in range(len(layer_sizes) - 1):
             self.layers.append(LinearLayer(layer_sizes[i], layer_sizes[i+1], init_type))
-
-        self.act = getattr(Activations, activation)
-        self.act_prime = getattr(Activations, f"{activation}_prime")
+            # Append an activation object for every hidden layer
+            if i < len(layer_sizes) - 2:
+                self.activations.append(ActClass())
 
     def forward(self, x):
-        self.layer_inputs = []
-        self.layer_z = []
-        self.layer_a = []
-
         out = x
         for i, layer in enumerate(self.layers):
-            z = layer.forward(out)
-            self.layer_z.append(z)
-
-            if i < len(self.layers)-1:
-                out = self.act(z)
-                self.layer_a.append(out)
-            else:
-                out = z
+            out = layer.forward(out)
+            # Apply activation for hidden layers
+            if i < len(self.layers) - 1:
+                out = self.activations[i].forward(out)
         return out
 
     def backward(self, probs, y_true):
@@ -97,9 +94,9 @@ class DeepMLP:
 
         for i in reversed(range(len(self.layers))):
             delta = self.layers[i].backward(delta)
-            if i>0:
-                delta = delta * self.act_prime(self.layer_z[i-1])
-
+            # Pass delta through the activation backward method for hidden layers
+            if i > 0:
+                delta = self.activations[i-1].backward(delta)
 
 class Loss:
 
