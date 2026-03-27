@@ -3,7 +3,29 @@ import numpy as np
 class Module:
     """
     Abstract base class for all neural network components.
+    Manages execution state (training vs evaluation) for stochastic layers.
     """
+    def __init__(self):
+        self.training = True
+
+    def train(self):
+        """Sets the module and all sub-modules to training mode."""
+        self.training = True
+        # Recursively apply to all sub-layers in container modules (like Sequential)
+        if hasattr(self, 'layers'):
+            for layer in self.layers:
+                if hasattr(layer, 'train'):
+                    layer.train()
+
+    def eval(self):
+        """Sets the module and all sub-modules to evaluation mode."""
+        self.training = False
+        # Recursively apply to all sub-layers in container modules (like Sequential)
+        if hasattr(self, 'layers'):
+            for layer in self.layers:
+                if hasattr(layer, 'eval'):
+                    layer.eval()
+
     def forward(self, x):
         """
         Executes the forward pass.

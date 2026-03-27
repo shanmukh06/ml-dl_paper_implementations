@@ -34,3 +34,19 @@ class Softsign(Module):
         x = cache
         local_gradient = 1 / (1 + np.abs(x)) ** 2
         return delta_in * local_gradient
+
+class ReLU(Module):
+    """
+    Rectified Linear Unit.
+    Crucial for deep networks (like ResNet) to prevent vanishing gradients.
+    """
+    def forward(self, x):
+        out = np.maximum(0, x)
+        cache = x  # Cache the pre-activation input for the backward pass
+        return out, cache
+
+    def backward(self, delta_in, cache):
+        x = cache
+        # The local gradient is 1 where x > 0, and 0 where x <= 0
+        local_gradient = (x > 0).astype(float)
+        return delta_in * local_gradient
